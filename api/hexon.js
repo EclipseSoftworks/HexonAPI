@@ -5,33 +5,46 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
-  const data = await req.json();
-  const { placeId, jobId, gameId } = data;
+  try {
+    const data = await req.json();
+    const { placeId, jobId, gameId } = data;
 
-  if (!placeId || !jobId || !gameId) {
-    return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
-  }
+    if (!placeId || !jobId || !gameId) {
+      return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
+    }
 
-  const webhookPayload = {
-    embeds: [
+    // Discord webhook embed
+    const webhookPayload = {
+      embeds: [
+        {
+          title: "Game Started",
+          color: 0x00ff00,
+          fields: [
+            { name: "Place ID", value: String(placeId), inline: true },
+            { name: "Job ID", value: String(jobId), inline: true },
+            { name: "Game ID", value: String(gameId), inline: true }
+          ],
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    const response = await fetch(
+      "https://discord.com/api/webhooks/1455315027123765486/X3HEW7axDRmJuoBL4REgWUVt-GJ5DJFczOXTf3J6q2s4XDE54LHllTf_H6l9ZPee616g",
       {
-        title: "Game Started",
-        color: 0x00ff00,
-        fields: [
-          { name: "Place ID", value: String(placeId), inline: true },
-          { name: "Job ID", value: String(jobId), inline: true },
-          { name: "Game ID", value: String(gameId), inline: true }
-        ],
-        timestamp: new Date().toISOString()
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(webhookPayload)
       }
-    ]
-  };
+    );
 
-  await fetch("https://discord.com/api/webhooks/1455315027123765486/X3HEW7axDRmJuoBL4REgWUVt-GJ5DJFczOXTf3J6q2s4XDE54LHllTf_H6l9ZPee616g", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(webhookPayload)
-  });
+    // Optional debug: check Discord response
+    const discordRespText = await response.text();
+    console.log("Discord response:", discordRespText);
 
-  return new Response(JSON.stringify({ message: "Sent to Discord!" }), { status: 200 });
+    return new Response(JSON.stringify({ message: "Sent to Discord!" }), { status: 200 });
+  } catch (err) {
+    console.error("Error:", err);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+  }
 }
