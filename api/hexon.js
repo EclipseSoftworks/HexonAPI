@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    // Parse JSON body
+    // Parse JSON body from Roblox
     const data = await new Promise((resolve, reject) => {
       let body = "";
       req.on("data", chunk => body += chunk.toString());
@@ -38,20 +38,28 @@ export default async function handler(req, res) {
     // 4️⃣ Join button
     const Joinbutton = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobId}`;
 
-    // 5️⃣ Send to your database API
-    await fetch("https://www.isiah.website/api/eclipsedatabase.js", {
+    // 5️⃣ Send to database API and check response
+    const dbPayload = { gamename, players, Gamethumbnail, Joinbutton };
+    const dbResponse = await fetch("https://www.isiah.website/api/eclipsedatabase.js", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": "K7f9D4sX2mLpQ8zV6rT1bNjU3wYvA0HqZ5xRkCjF9aE2oP1sL8dM"
       },
-      body: JSON.stringify({ gamename, players, Gamethumbnail, Joinbutton })
+      body: JSON.stringify(dbPayload)
     });
 
-    return res.status(200).json({ message: "Game data sent to database!" });
+    const dbText = await dbResponse.text(); // get response body
+    console.log("Database API response:", dbText);
+
+    if (!dbResponse.ok) {
+      return res.status(dbResponse.status).json({ error: "Database API error", details: dbText });
+    }
+
+    return res.status(200).json({ message: "Game data sent to database!", dbResponse: dbText });
 
   } catch (err) {
     console.error("Error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error", details: err.toString() });
   }
 }
