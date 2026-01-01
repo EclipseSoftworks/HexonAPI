@@ -13,7 +13,7 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
     }
 
-    // Discord webhook embed
+    // Discord webhook payload
     const webhookPayload = {
       embeds: [
         {
@@ -29,7 +29,8 @@ export default async function handler(req) {
       ]
     };
 
-    const response = await fetch(
+    // Send to your webhook
+    await fetch(
       "https://discord.com/api/webhooks/1455315027123765486/X3HEW7axDRmJuoBL4REgWUVt-GJ5DJFczOXTf3J6q2s4XDE54LHllTf_H6l9ZPee616g",
       {
         method: "POST",
@@ -37,10 +38,6 @@ export default async function handler(req) {
         body: JSON.stringify(webhookPayload)
       }
     );
-
-    // Optional debug: check Discord response
-    const discordRespText = await response.text();
-    console.log("Discord response:", discordRespText);
 
     return new Response(JSON.stringify({ message: "Sent to Discord!" }), { status: 200 });
   } catch (err) {
