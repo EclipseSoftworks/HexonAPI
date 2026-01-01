@@ -7,41 +7,60 @@ export default async function handler(req) {
 
   try {
     const data = await req.json();
-    const { placeId, jobId, gameId } = data;
+    const { placeId, jobId } = data;
 
-    if (!placeId || !jobId || !gameId) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
+    if (!placeId || !jobId) {
+      return new Response(JSON.stringify({ error: "Missing placeId or jobId" }), { status: 400 });
     }
 
-    // Discord webhook payload
-    const webhookPayload = {
-      embeds: [
-        {
-          title: "Game Started",
-          color: 0x00ff00,
-          fields: [
-            { name: "Place ID", value: String(placeId), inline: true },
-            { name: "Job ID", value: String(jobId), inline: true },
-            { name: "Game ID", value: String(gameId), inline: true }
-          ],
-          timestamp: new Date().toISOString()
-        }
-      ]
+    // 1️⃣ Get universeId
+    const universeResp = await fetch(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`);
+    const universeData = await universeResp.json();
+    const universeId = universeData.universeId;
+    if (!universeId) {
+      return new Response(JSON.stringify({ error: "Failed to get universeId" }), { status: 400 });
+    }
+
+    // 2️⃣ Get game info
+    const gameResp = await fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
+    const gameData = await gameResp.json();
+    const gameInfo = gameData.data?.[0];
+    if (!gameInfo) {
+      return new Response(JSON.stringify({ error: "Failed to get game info" }), { status: 400 });
+    }
+
+    const gamename = gameInfo.name;
+    const players = gameInfo.playing;
+
+    // 3️⃣ Get game thumbnail
+    const thumbResp = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=150x150&format=Png&isCircular=false`);
+    const thumbData = await thumbResp.json();
+    const Gamethumbnail = thumbData.data?.[0]?.imageUrl || "";
+
+    // 4️⃣ Build join button
+    const Joinbutton = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobId}`;
+
+    // 5️⃣ Build final payload
+    const dbPayload = {
+      gamename,
+      players,
+      Gamethumbnail,
+      Joinbutton
     };
 
-    // Send to your webhook
-    await fetch(
-      "https://discord.com/api/webhooks/1455315027123765486/X3HEW7axDRmJuoBL4REgWUVt-GJ5DJFczOXTf3J6q2s4XDE54LHllTf_H6l9ZPee616g",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(webhookPayload)
-      }
-    );
+    // 6️⃣ Send to your database API
+    await fetch("https://www.isiah.website/api/eclipsedatabase.js", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "K7f9D4sX2mLpQ8zV6rT1bNjU3wYvA0HqZ5xRkCjF9aE2oP1sL8dM"
+      },
+      body: JSON.stringify(dbPayload)
+    });
 
-    return new Response(JSON.stringify({ message: "Sent to Discord!" }), { status: 200 });
+    return new Response(JSON.stringify({ message: "Game data saved successfully!" }), { status: 200 });
   } catch (err) {
     console.error("Error:", err);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
 }
