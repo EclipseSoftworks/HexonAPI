@@ -2,6 +2,12 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
+    // 🔐 Require Roblox key
+    const robloxKey = req.headers["x-roblox-key"];
+    if (!robloxKey || robloxKey !== "rbx_hexon_7MZQJ4YfP1sL2N9W5kD0T8A3BvHXCmRjIUEqKc6oSxFVaGpwt") {
+      return res.status(401).json({ error: "Invalid or missing Roblox key" });
+    }
+
     const data = await new Promise((resolve, reject) => {
       let body = "";
       req.on("data", chunk => body += chunk.toString());
@@ -28,31 +34,34 @@ export default async function handler(req, res) {
 
     const gamename = gameInfo.name;
     const players = gameInfo.playing;
+    const Gameid = placeId; // ✅ added
 
     // Get thumbnail
-    const thumbResp = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=150x150&format=Png&isCircular=false`);
+    const thumbResp = await fetch(
+      `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=150x150&format=Png&isCircular=false`
+    );
     const thumbData = await thumbResp.json();
     const Gamethumbnail = thumbData.data?.[0]?.imageUrl || "";
 
     // Join button
     const Joinbutton = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${jobId}`;
 
-    // Build payload as array with API key
+    // Build payload
     const dbPayload = {
-      apiKey: 'K7f9D4sX2mLpQ8zV6rT1bNjU3wYvA0HqZ5xRkCjF9aE2oP1sL8dM',
+      apiKey: "K7f9D4sX2mLpQ8zV6rT1bNjU3wYvA0HqZ5xRkCjF9aE2oP1sL8dM",
       games: [
-        { gamename, players, Gamethumbnail, Joinbutton }
+        { gamename, players, Gamethumbnail, Gameid, Joinbutton }
       ]
     };
 
-    // Send to database asynchronously
+    // Send to database
     fetch("https://www.isiah.website/api/eclipsedatabase.js", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dbPayload)
     })
-    .then(r => console.log("Database API response status:", r.status))
-    .catch(err => console.error("Failed to send to database:", err));
+      .then(r => console.log("Database API response status:", r.status))
+      .catch(err => console.error("Failed to send to database:", err));
 
     return res.status(200).json({ message: "Game data sent to database!" });
 
