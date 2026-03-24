@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const payload = {
       embeds: [
         {
-          title: "CHASE WILSON FAN CLUB SERVER",
+          title: "CHASE WILSON FAN CLUB SERVERSIDE",
           description: `[${data.name}](${gamePageLink})`,
           color: 0x47FF94,
           thumbnail: { url: thumbnail },
