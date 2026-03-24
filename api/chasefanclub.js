@@ -1,24 +1,28 @@
 export default async function handler(req, res) {
+    // Allow POST only
     if (req.method !== "POST") {
-        return res.status(405).end();
+        return res.status(405).json({ error: "Method not allowed" });
     }
 
     try {
-        const data = req.body;
+        // Fix body parsing
+        const data = typeof req.body === "string"
+            ? JSON.parse(req.body)
+            : req.body;
+
+        if (!data) {
+            return res.status(400).json({ error: "No data received" });
+        }
 
         const webhook = "https://discord.com/api/webhooks/1485400530355224777/DWtytBOfUSYJXipbvYV2-g2YGm6ySaF8clyz_ZnwGFGSbW4vSq6ebgwVnp2N1TkioImM";
 
         const payload = {
-            // ❌ no username field → keeps default webhook name
-            // ❌ no avatar_url → keeps default profile picture
-
             embeds: [
                 {
                     title: "CHASE FAN CLUB SERVER",
                     description: `[${data.name}](https://www.roblox.com/games/${data.placeId})`,
                     color: 0x47FF94,
 
-                    // ✅ YOUR IMAGE HERE
                     image: {
                         url: "https://media.discordapp.net/attachments/1479908190551408660/1485021148671512676/image.png"
                     },
@@ -47,7 +51,7 @@ export default async function handler(req, res) {
             ]
         };
 
-        await fetch(webhook, {
+        const discordRes = await fetch(webhook, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -55,9 +59,15 @@ export default async function handler(req, res) {
             body: JSON.stringify(payload)
         });
 
-        res.status(200).json({ success: true });
+        if (!discordRes.ok) {
+            const text = await discordRes.text();
+            return res.status(500).json({ error: text });
+        }
+
+        return res.status(200).json({ success: true });
 
     } catch (err) {
-        res.status(500).json({ error: "Failed" });
+        console.error("API ERROR:", err);
+        return res.status(500).json({ error: err.message });
     }
 }
